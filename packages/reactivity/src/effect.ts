@@ -5,7 +5,12 @@ export function effect(fn, options?) {
     })
     _effect.run()
 
-    return _effect
+    if (options) {
+        Object.assign(_effect, options) // 用户设定的 覆盖掉内置的
+    }
+    const runner = _effect.run.bind(_effect)
+    runner.effect = _effect
+    return runner
 }
 
 export let activeEffect
@@ -14,6 +19,7 @@ class ReactiveEffect {
     _trackId = 0 // 用于记录effect执行了几次 防止一个属性在effect中多次收集依赖
     deps = [] // 用于记录存放了哪些依赖
     _depLength = 0 // 依赖项下标
+    _running = 0
     public active = true //  创建的effect默认为响应式
 
     // fn 用户编写的函数 public是让属性直接挂在到实例上
@@ -30,9 +36,11 @@ class ReactiveEffect {
             activeEffect = this
             // effect执行前，需要将上一次的依赖清空 effect.deps
             preCleanEffect(this)
+            this._running++
             return this.fn()
         } finally {
             activeEffect = lastEffect
+            this._running--
             postCleanEffect(this);
         }
     }
@@ -60,7 +68,9 @@ export function trackEffect(effect, dep) {
 export function triggerEffect(dep) {
     for (const effect of dep.keys()) {
         if (effect.scheduler) {
-            effect.scheduler()
+            if (!effect._running) {
+                effect.scheduler()
+            }
         }
     }
 }

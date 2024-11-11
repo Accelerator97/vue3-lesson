@@ -24,6 +24,6 @@ function createReactiveObjective(target) {
     return proxy
 }
 
-export function reactivity(target) {
+export function reactive(target) {
     return createReactiveObjective(target)
 }
