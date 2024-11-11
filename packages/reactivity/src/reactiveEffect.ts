@@ -2,9 +2,10 @@ import { activeEffect, trackEffect, triggerEffect } from './effect'
 
 const targetMap = new WeakMap()
 
-export function createDep(cleanup) {
+export function createDep(cleanup, key) {
     const dep: any = new Map() // 创建的收集器还是一个map 
     dep.cleanup = cleanup  // 增加清理方法
+    dep.key = key // 自定义标识
     return dep
 }
 
@@ -21,7 +22,7 @@ export function track(target, key) {
 
         let dep = desMap.get(key)
         if (!dep) {
-            desMap.set(key, dep = createDep(() => { desMap.delete(key) }))
+            desMap.set(key, dep = createDep(() => { desMap.delete(key) }, key))
         }
 
         // 把当前effect放到dep中，后续可以根据值的变化触发dep中存放的effect

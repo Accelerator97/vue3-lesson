@@ -11,7 +11,7 @@ function createReactiveObjective(target) {
 
     // 代理的对象 再代理的话 返回
     if (target[ReactiveFlags.IS_REACTIVE]) {
-        return true
+        return target
     }
 
     // 缓存
