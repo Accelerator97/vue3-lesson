@@ -1,3 +1,5 @@
+import { DirtyLevels } from "./constants"
+
 export function effect(fn, options?) {
     // 创建一个effect,只要依赖的属性变化就要执行回调
     const _effect = new ReactiveEffect(fn, () => {
@@ -15,18 +17,28 @@ export function effect(fn, options?) {
 
 export let activeEffect
 
-class ReactiveEffect {
+export class ReactiveEffect {
     _trackId = 0 // 用于记录effect执行了几次 防止一个属性在effect中多次收集依赖
     deps = [] // 用于记录存放了哪些依赖
     _depLength = 0 // 依赖项下标
     _running = 0
+    _dirtyLevel = DirtyLevels.Dirty
     public active = true //  创建的effect默认为响应式
 
     // fn 用户编写的函数 public是让属性直接挂在到实例上
     // 如果fn中依赖的数据发生变化后，需要重新调用 即调用run方法
     constructor(public fn, public scheduler) { }
 
+    public get dirty() {
+        return this._dirtyLevel = DirtyLevels.Dirty
+    }
+
+    public set dirty(v) {
+        this._dirtyLevel = v ? DirtyLevels.Dirty : DirtyLevels.NoDirty
+    }
+
     run() {
+        this._dirtyLevel = DirtyLevels.NoDirty // 每次运行后effect变为NoDirty
         if (!this.active) { // 非响应式 执行完啥也不干
             return this.fn()
         }
@@ -67,6 +79,10 @@ export function trackEffect(effect, dep) {
 
 export function triggerEffect(dep) {
     for (const effect of dep.keys()) {
+        if (effect._dirtyLevel < DirtyLevels.Dirty) {
+            // 当前这个值不脏，但是触发更新后需要把值变为脏值
+            effect._dirtyLevel = DirtyLevels.Dirty
+        }
         if (effect.scheduler) {
             if (!effect._running) {
                 effect.scheduler()
