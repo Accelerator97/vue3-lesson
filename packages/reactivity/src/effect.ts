@@ -30,7 +30,7 @@ export class ReactiveEffect {
     constructor(public fn, public scheduler) { }
 
     public get dirty() {
-        return this._dirtyLevel = DirtyLevels.Dirty
+        return this._dirtyLevel === DirtyLevels.Dirty
     }
 
     public set dirty(v) {
@@ -62,7 +62,6 @@ export class ReactiveEffect {
 export function trackEffect(effect, dep) {
     if (dep.get(effect) !== effect._trackId) {
         dep.set(effect, effect._trackId) // 优化多余的收集
-
         let oldDep = effect.deps[effect._depLength]
         if (oldDep !== dep) {
             if (oldDep) {
