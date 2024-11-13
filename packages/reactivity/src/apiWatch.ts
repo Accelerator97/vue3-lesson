@@ -58,10 +58,20 @@ function doWatch(source, cb, { deep, immediate = false }) {
 
     // 产生一个可以给ReactiveEffect 来使用的getter  需要对这个对象进行取值操作 会关联当前的reactiveEffect
     let oldValue;
+    let clean
+    const onCleanup = (fn) => {
+        clean = () => {
+            fn()
+            clean = undefined
+        }
+    }
     const job = () => {
         if (cb) {
             const newValue = effect.run()
-            cb(oldValue, newValue)
+            if (clean) {
+                clean() // 在执行回调前 先调用上一次清理操作进行清理
+            }
+            cb(oldValue, newValue, onCleanup)
             oldValue = newValue
         } else {
             effect.run()
