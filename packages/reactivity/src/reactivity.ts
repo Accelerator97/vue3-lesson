@@ -33,3 +33,8 @@ export function reactive(target) {
 export function toReactive(value) {
     return isObject(value) ? reactive(value) : value
 }
+
+
+export function isReactive(value) {
+    return !!(value && value[ReactiveFlags.IS_REACTIVE])
+}

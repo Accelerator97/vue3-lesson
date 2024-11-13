@@ -69,7 +69,7 @@ export function toRefs(object) {
 
 class ObjectRefImp {
     public __v_isRef = true // 增加ref标识
-    constructor(public _object, public _key) {}
+    constructor(public _object, public _key) { }
 
     get value() {
         return this._object[this._key]
@@ -99,4 +99,9 @@ export function proxyRefs(objectWithRef) {
             }
         }
     })
+}
+
+
+export function isRef(value) {
+    return !!(value && value.__v_isRef)
 }

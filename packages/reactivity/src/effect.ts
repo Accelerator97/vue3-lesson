@@ -56,6 +56,15 @@ export class ReactiveEffect {
             postCleanEffect(this);
         }
     }
+
+
+    stop() {
+        if (this.active) {
+            this.active = false
+            preCleanEffect(this)
+            postCleanEffect(this)
+        }
+    }
 }
 
 // 双向记忆 effect记录deps deps收集effect
@@ -95,6 +104,7 @@ function preCleanEffect(effect) {
     effect._trackId++ // 每次执行id+1，如果当前同一个effect执行，id相同
 }
 
+// 把多余的依赖删掉
 function postCleanEffect(effect) {
     if (effect.deps.length > effect._depLength) {
         for (let i = effect._depLength; i < effect.deps.length; i++) {
