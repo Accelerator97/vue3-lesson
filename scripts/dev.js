@@ -22,7 +22,7 @@ const pkg = require(`../packages/${target}/package.json`)
 esbuild
     .context({
         entryPoints: [entry], // 入口
-        outfile: resolve(__dirname, `../packages/dist/${target}.js`), // 出口
+        outfile: resolve(__dirname, `../packages/${target}/dist/${target}.js`), // 出口
         bundle: true, // reactivity shared打包到一起
         platform: "browser",
         sourcemap: true,
