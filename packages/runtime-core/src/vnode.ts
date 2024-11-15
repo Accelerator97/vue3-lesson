@@ -5,6 +5,10 @@ export function isVnode(value) {
 }
 
 
+export function isSameVnode(n1, n2) {
+    return n1.type === n2.type && n1.key === n2.key
+}
+
 export function createVnode(type, props, chidren?) {
     // type : div h1  h2这种标签
     const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : 0
