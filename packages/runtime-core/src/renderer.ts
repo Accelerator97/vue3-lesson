@@ -129,18 +129,18 @@ export function createRenderer(renderOptions) {
         // [a,b,c] [a,b] | [c,a,b] [a,b]
 
         // 最终比对乱序的情况
-        // a b
-        // a b c  ->   i = 2 , e1 = 1, e2 = 2     i>e1 && i<=e2  (尾部新增)
+        // 老数组：a b
+        // 新数组：a b c  ->   i = 2 , e1 = 1, e2 = 2     i>e1 && i<=e2  (尾部新增)
 
-        // a b
-        // c a b ->    i = 0, e1 = -1  e2 = 0     i> e1 && i <=e2  新多老的少 （头部新增）
+        // 老数组：a b
+        // 新数组：c a b ->    i = 0, e1 = -1  e2 = 0     i> e1 && i <=e2  新多老的少 （头部新增）
 
 
-        // a,b,c
-        // a,b   i = 2   e1 = 2  e2 = 1    i>e2   i<=e1  （尾部删除）
+        // 老数组：a,b,c
+        // 新数组：a,b   i = 2   e1 = 2  e2 = 1    i>e2   i<=e1  （尾部删除）
 
-        // c,a,b
-        // a,b    i = 0  e1= 1    e2=-1    i>e2   i<=e1 （头部删除）
+        // 老数组：c,a,b
+        // 新数组：a,b    i = 0  e1= 1    e2=-1    i>e2   i<=e1 （头部删除）
 
         if (i > e1) { // 新的多
             if (i <= e2) { // 有插入的部分
@@ -165,7 +165,8 @@ export function createRenderer(renderOptions) {
             let s2 = i
 
             const keyToNewIndexMap = new Map() // 做一个映射表 用于快速查找老的是否在新的里面还有 没有就删除 有的话更新
-
+            let toBePatched = e2 - s2 + 1 // 要插入的个数
+            let newIndexToOldMapIndex = new Array(toBePatched).fill(0) // 节点在老数组中对应的下标 如果为0说明是新增节点 
 
             for (let i = s2; i <= e2; i++) {
                 const vnode = c2[i]
@@ -175,22 +176,21 @@ export function createRenderer(renderOptions) {
             for (let i = s1; i <= e1; i++) {
                 const vnode = c1[i]
                 const newIndex = keyToNewIndexMap.get(vnode.key)
-
                 if (newIndex === undefined) {
-                    // 如果新的找不到 要删除老的
+                    // 老节点没有对应 则要删掉这个老节点
                     unmount(vnode)
                 } else {
+                    // 有可能i为0 为了保证0是没有比对过的元素 直接i+1
+                    newIndexToOldMapIndex[newIndex - s2] = i
                     //  比较前后节点的差异，更新属性和儿子
                     patch(vnode, c2[newIndex], el)
                 }
             }
 
 
-            // 调整顺序
-            // 我们可以按照新的队列 倒序插入
-            let toBePatched = e2 - s2 + 1 // 要插入的个数
+            // 调整顺序 可以按照新的队列 倒序插入
             for (let i = toBePatched - 1; i >= 0; i--) {
-                let newIndex = s2 + i // h 对应的索引，找他下个元素作为参照物进行插入
+                let newIndex = s2 + i // 要插入的节点 在 新数组中 对应的索引，找他下个元素作为参照物进行插入
                 let anchor = c2[newIndex + 1]?.el
                 let vnode = c2[newIndex]
 
