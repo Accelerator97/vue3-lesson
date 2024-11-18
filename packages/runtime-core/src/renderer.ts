@@ -1,6 +1,6 @@
 // core 不关心如何渲染
 import { ShapeFlags, isString } from '@vue/shared'
-import { isSameVnode, Text, createVnode } from './vnode'
+import { isSameVnode, Text, createVnode, Fragment } from './vnode'
 import getSequence from './seq'
 
 export function createRenderer(renderOptions) {
@@ -274,6 +274,15 @@ export function createRenderer(renderOptions) {
         }
     }
 
+
+    const processFragment = (n1, n2, container) => {
+        if (n1 === null) {
+            mountChildren(n2.children, container)
+        } else {
+            patchChildren(n1, n2, container)
+        }
+    }
+
     // 渲染 更新
     const patch = (n1, n2, container, anchor = null) => {
         if (n1 === n2) return // 两次渲染同一个元素 跳过
@@ -289,6 +298,10 @@ export function createRenderer(renderOptions) {
                 processText(n1, n2, container)
                 break
             }
+            case Fragment: {
+                processFragment(n1, n2, container)
+                break
+            }
             default: {
                 processElement(n1, n2, container, anchor)
                 break
@@ -297,7 +310,13 @@ export function createRenderer(renderOptions) {
     }
 
 
-    const unmount = (vnode) => hostRemove(vnode.el)
+    const unmount = (vnode) => {
+        if (vnode.type === Fragment) {
+            unmountChildren(vnode.children)
+        } else {
+            hostRemove(vnode.el)
+        }
+    }
 
     // 多次调用render会进行虚拟节点的比较，再进行更新
     const render = (vnode, container) => {
