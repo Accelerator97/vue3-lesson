@@ -2,6 +2,8 @@
 import { ShapeFlags, isString } from '@vue/shared'
 import { isSameVnode, Text, createVnode, Fragment } from './vnode'
 import getSequence from './seq'
+import { effect, reactive, ReactiveEffect } from '@vue/reactivity'
+import { queueJob } from './scheduler'
 
 export function createRenderer(renderOptions) {
     const {
@@ -243,7 +245,6 @@ export function createRenderer(renderOptions) {
         } else {
             if (preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
                 if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {  // 情况3
-                    // TODO:全量diff 两个数组的比对
                     patchKeyedchildren(c1, c2, el)
                 } else { // 情况4
                     unmountChildren(c1)
@@ -283,6 +284,50 @@ export function createRenderer(renderOptions) {
         }
     }
 
+    const mountComponent = (n2, container, anchor) => {
+        // 组件可以基于自己的状态重新渲染 其实每个组件相当于一个effect
+        const { data = () => { }, render } = n2.type
+
+        const state = reactive(data())
+
+        const instance = {
+            state, // 状态
+            vnode: n2, // 组件的虚拟节点
+            subTree: null, // 子树
+            isMounted: false, // 是否挂载完成
+            update: null // 组件更新函数
+        }
+
+        const componentUpdateFn = () => {
+            if (!instance.isMounted) {
+                const subTree = render.call(state, state)
+                instance.subTree = subTree
+                patch(null, subTree, container, anchor)
+                instance.isMounted = true
+                instance.subTree = subTree
+            } else {
+                // 基于状态的组件更新
+                const subTree = render.call(state, state)
+                patch(instance.subTree, subTree, container, anchor)
+                instance.subTree = subTree
+            }
+        }
+
+        const effect = new ReactiveEffect(componentUpdateFn, () => queueJob(update))
+
+        const update = (instance.update = () => effect.run())
+        update()
+    }
+
+    const processComponent = (n1, n2, container, anchor) => {
+        if (n1 === null) { // 初始渲染
+            mountComponent(n2, container, anchor)
+        } else { // 组件更新
+
+        }
+
+    }
+
     // 渲染 更新
     const patch = (n1, n2, container, anchor = null) => {
         if (n1 === n2) return // 两次渲染同一个元素 跳过
@@ -291,7 +336,7 @@ export function createRenderer(renderOptions) {
             n1 = null
         }
         // 两个节点是相同的虚拟节点 比较差异
-        const { type } = n2
+        const { type, shapeFlag } = n2
 
         switch (type) {
             case Text: {
@@ -303,7 +348,11 @@ export function createRenderer(renderOptions) {
                 break
             }
             default: {
-                processElement(n1, n2, container, anchor)
+                if (shapeFlag & ShapeFlags.ELEMENT) {
+                    processElement(n1, n2, container, anchor)
+                } else if (shapeFlag & ShapeFlags.COMPONENT) {
+                    processComponent(n1, n2, container, anchor)
+                }
                 break
             }
         }

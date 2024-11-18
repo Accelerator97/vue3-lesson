@@ -14,8 +14,12 @@ export function isSameVnode(n1, n2) {
 }
 
 export function createVnode(type, props, children?) {
-    // type : div h1  h2这种标签
-    const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : 0
+    // type : div h1  h2这种标签  或者 组件
+    const shapeFlag = isString(type)
+        ? ShapeFlags.ELEMENT // 元素
+        : isObject(type)
+            ? ShapeFlags.STATEFUL_COMPONENT // 组件
+            : 0
     const vnode = {
         __v_isVnode: true,
         type,
