@@ -9,28 +9,28 @@
 import { isObject } from "@vue/shared"
 import { createVnode, isVnode } from "./vnode"
 
-export function h(type, propsOrChidren?, chidren?) {
+export function h(type, propsOrChildren?, children?) {
     let l = arguments.length
 
     if (l === 2) {
-        if (isObject(propsOrChidren) && !Array.isArray(propsOrChidren)) {
+        if (isObject(propsOrChildren) && !Array.isArray(propsOrChildren)) {
             // 可能是属性或者虚拟节点
-            if (isVnode(propsOrChidren)) {
-                return createVnode(type, null, [propsOrChidren])
+            if (isVnode(propsOrChildren)) {
+                return createVnode(type, null, [propsOrChildren])
             } else {
-                return createVnode(type, propsOrChidren)
+                return createVnode(type, propsOrChildren)
             }
         }
         // 数组或者文本
-        return createVnode(type, null, propsOrChidren)
+        return createVnode(type, null, propsOrChildren)
     } else {
         if (l > 3) {
-            chidren = Array.from(arguments).slice(2)
+            children = Array.from(arguments).slice(2)
         }
-        if (l === 3 && isVnode(chidren)) {
-            chidren = [chidren]
+        if (l === 3 && isVnode(children)) {
+            children = [children]
         }
-        return createVnode(type, propsOrChidren, chidren)
+        return createVnode(type, propsOrChildren, children)
     }
 }
 

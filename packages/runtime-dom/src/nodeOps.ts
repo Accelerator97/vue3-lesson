@@ -16,7 +16,7 @@ export const nodeOps = {
         return document.createElement(type)
     },
     createText(text) {
-        document.createTextNode(text)
+        return document.createTextNode(text)
     },
     setText(node, text) { // 给文本节点设置文本
         node.nodeValue = text

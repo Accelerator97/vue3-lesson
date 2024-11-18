@@ -1,6 +1,6 @@
 // core 不关心如何渲染
-import { ShapeFlags } from '@vue/shared'
-import { isSameVnode } from './vnode'
+import { ShapeFlags, isString } from '@vue/shared'
+import { isSameVnode, Text, createVnode } from './vnode'
 import getSequence from './seq'
 
 export function createRenderer(renderOptions) {
@@ -16,18 +16,26 @@ export function createRenderer(renderOptions) {
         patchProp: hostPatchProp
     } = renderOptions
 
-    const mountChildren = (chidren, container) => {
-        for (let i = 0; i < chidren.length; i++) {
-            // TODO: children[i] 可能是纯文本的情况
-            patch(null, chidren[i], container)
+    const mountChildren = (children, container) => {
+        for (let i = 0; i < children.length; i++) {
+            const child = normalize(children, i)
+            patch(null, child, container)
         }
+    }
+
+    const normalize = (children, i) => {
+        // 检测如果是字符串的话，就把字符串转换成文本节点    
+        if (isString(children[i])) {
+            let vnode = createVnode(Text, null, children[i])
+            children[i] = vnode
+        }
+        return children[i]
     }
 
     const mountElement = (vnode, container, anchor) => {
         // shapFlag是vnode的节点类型和 子节点类型 取异或的值
-        const { type, chidren, props, shapeFlag } = vnode
+        const { type, children, props, shapeFlag } = vnode
         let el = (vnode.el = hostCreateElement(type))
-
         if (props) {
             for (let key in props) {
                 hostPatchProp(el, key, null, props[key])
@@ -35,9 +43,9 @@ export function createRenderer(renderOptions) {
         }
         // 9 & 8 > 0 说明儿子是文本元素
         if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
-            hostSetElementText(el, chidren)
+            hostSetElementText(el, children)
         } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) { // 说明是儿子是数组
-            mountChildren(chidren, el)
+            mountChildren(children, el)
         }
 
         hostInsert(el, container, anchor)
@@ -82,13 +90,13 @@ export function createRenderer(renderOptions) {
 
     }
 
-    const unmountChildren = (chidren) => {
-        for (let i = 0; i < chidren.length; i++) {
-            unmount(chidren[i]) // 把dom节点从页面上移除
+    const unmountChildren = (children) => {
+        for (let i = 0; i < children.length; i++) {
+            unmount(children[i]) // 把dom节点从页面上移除
         }
     }
 
-    const patchKeyedChidren = (c1, c2, el) => {
+    const patchKeyedchildren = (c1, c2, el) => {
         // 比较两个儿子的差异 更新el
         // appendChild removeChild insertBefore
         // 1.减少比对范围，先从头开始比，再从尾部开始比，确定不一样的范围
@@ -212,8 +220,8 @@ export function createRenderer(renderOptions) {
     // 儿子 有可能是text array 或者null 
     const patchChildren = (n1, n2, el) => {
 
-        const c1 = n1.chidren
-        const c2 = n2.chidren
+        const c1 = n1.children
+        const c2 = n2.children
 
         const preShapeFlag = n1.shapeFlag
         const shapeFlag = n2.shapeFlag
@@ -236,7 +244,7 @@ export function createRenderer(renderOptions) {
             if (preShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
                 if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {  // 情况3
                     // TODO:全量diff 两个数组的比对
-                    patchKeyedChidren(c1, c2, el)
+                    patchKeyedchildren(c1, c2, el)
                 } else { // 情况4
                     unmountChildren(c1)
                 }
@@ -253,6 +261,19 @@ export function createRenderer(renderOptions) {
 
     }
 
+    const processText = (n1, n2, container) => {
+        if (n1 === null) {
+            // 虚拟节点关联真实节点
+            // 插入到页面中
+            hostInsert(n2.el = hostCreateText(n2.children), container)
+        } else {
+            const el = (n2.el = n1.el)
+            if (n1.children !== n2.children) {
+                hostSetElementText(el, n2.children)
+            }
+        }
+    }
+
     // 渲染 更新
     const patch = (n1, n2, container, anchor = null) => {
         if (n1 === n2) return // 两次渲染同一个元素 跳过
@@ -261,7 +282,18 @@ export function createRenderer(renderOptions) {
             n1 = null
         }
         // 两个节点是相同的虚拟节点 比较差异
-        processElement(n1, n2, container, anchor)
+        const { type } = n2
+
+        switch (type) {
+            case Text: {
+                processText(n1, n2, container)
+                break
+            }
+            default: {
+                processElement(n1, n2, container, anchor)
+                break
+            }
+        }
     }
 
 
@@ -271,13 +303,13 @@ export function createRenderer(renderOptions) {
     const render = (vnode, container) => {
         if ((vnode === null) && container._vnode) {
             unmount(container._vnode)
+        } else {
+            // 把虚拟节点变成真实节点渲染
+            patch(container._vnode || null, vnode, container)
+            // 第一次调渲染方法 保存vnode到container上 后续可以判断是不是更新
+            container._vnode = vnode
         }
-        // 把虚拟节点变成真实节点渲染
-        patch(container._vnode || null, vnode, container)
-        // 第一次调渲染方法 保存vnode到container上 后续可以判断是不是更新
-        container._vnode = vnode
     }
-
     return {
         render
     }
