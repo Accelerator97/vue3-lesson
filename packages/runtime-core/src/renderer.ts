@@ -1,6 +1,7 @@
 // core 不关心如何渲染
 import { ShapeFlags } from '@vue/shared'
 import { isSameVnode } from './vnode'
+import getSequence from './seq'
 
 export function createRenderer(renderOptions) {
     const {
@@ -187,7 +188,8 @@ export function createRenderer(renderOptions) {
                 }
             }
 
-
+            let increasingSeq = getSequence(newIndexToOldMapIndex)
+            let j = increasingSeq.length - 1
             // 调整顺序 可以按照新的队列 倒序插入
             for (let i = toBePatched - 1; i >= 0; i--) {
                 let newIndex = s2 + i // 要插入的节点 在 新数组中 对应的索引，找他下个元素作为参照物进行插入
@@ -197,13 +199,14 @@ export function createRenderer(renderOptions) {
                 if (!vnode.el) { // 之前没有创建过真实dom
                     patch(null, vnode, el, anchor)
                 } else {
-                    hostInsert(vnode.el, el, anchor)
+                    if (i === increasingSeq[j]) {
+                        j--
+                    } else {
+                        hostInsert(vnode.el, el, anchor)
+                    }
                 }
             }
-
         }
-
-
     }
 
     // 儿子 有可能是text array 或者null 
