@@ -284,19 +284,59 @@ export function createRenderer(renderOptions) {
         }
     }
 
-    const mountComponent = (n2, container, anchor) => {
+    // 初始化属性
+    const initProps = (instance, rawProps) => {
+        const attrs = {}
+        const props = {}
+
+        const propsOptions = instance.propsOptions || {}
+
+        if (rawProps) {
+            for (let key in rawProps) {
+                const value = rawProps[key]  //  value的类型 为string 或者 number
+                if (key in propsOptions) {
+                    props[key] = value
+                } else {
+                    attrs[key] = value
+                }
+            }
+        }
+
+        instance.attrs = attrs
+        instance.props = reactive(props)
+    }
+
+    const mountComponent = (vnode, container, anchor) => {
         // 组件可以基于自己的状态重新渲染 其实每个组件相当于一个effect
-        const { data = () => { }, render } = n2.type
+        const { data = () => { }, render, props: propsOptions = {} } = vnode.type
 
         const state = reactive(data())
 
         const instance = {
             state, // 状态
-            vnode: n2, // 组件的虚拟节点
+            vnode, // 组件的虚拟节点
             subTree: null, // 子树
             isMounted: false, // 是否挂载完成
-            update: null // 组件更新函数
+            update: null, // 组件更新函数
+            props: {},
+            attrs: {},
+            propsOptions,
+            component: null,
+            proxy: null, // 用来代理props attrs data 让用户更方便的访问
         }
+
+        vnode.component = instance
+        // 根据propsOptions 来区分出props,attrs
+        initProps(instance, vnode.props)
+
+        instance.proxy = new Proxy(instance, {
+            get(target, key, value) {
+
+            },
+            set(target, key, value, receiver) {
+                return true
+            }
+        })
 
         const componentUpdateFn = () => {
             if (!instance.isMounted) {
