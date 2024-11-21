@@ -320,10 +320,34 @@ export function createRenderer(renderOptions) {
         setupRenderEffect(instance, container, anchor)
     }
 
-    
+    const hasPropsChanged = (preProps, nextProps) => {
+        let nKey = Object.keys(nextProps)
+        if (nKey.length !== Object.keys(preProps).length) return true
+
+        for (let i = 0; i < nKey.length; i++) {
+            const key = nKey[i]
+
+            if (nextProps[key] !== preProps[key]) {
+                return true
+            }
+        }
+        return false
+    }
+
+
 
     const updateProps = (instance, preProps, nextProps) => {
+        if (hasPropsChanged(preProps, nextProps)) {
+            for (let key in nextProps) {
+                instance.props[key] = nextProps[key]
+            }
 
+            for (let key in instance.props) {
+                if (!(key in nextProps)) {
+                    delete instance.props[key]
+                }
+            }
+        }
     }
 
     const updateComponent = (n1, n2) => {
