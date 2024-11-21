@@ -1,9 +1,10 @@
 // core 不关心如何渲染
-import { ShapeFlags, isString } from '@vue/shared'
+import { ShapeFlags, isString, hasOwn } from '@vue/shared'
 import { isSameVnode, Text, createVnode, Fragment } from './vnode'
 import getSequence from './seq'
 import { effect, reactive, ReactiveEffect } from '@vue/reactivity'
 import { queueJob } from './scheduler'
+import { createComponentInstance, setupComponent } from './component'
 
 export function createRenderer(renderOptions) {
     const {
@@ -284,86 +285,62 @@ export function createRenderer(renderOptions) {
         }
     }
 
-    // 初始化属性
-    const initProps = (instance, rawProps) => {
-        const attrs = {}
-        const props = {}
 
-        const propsOptions = instance.propsOptions || {}
-
-        if (rawProps) {
-            for (let key in rawProps) {
-                const value = rawProps[key]  //  value的类型 为string 或者 number
-                if (key in propsOptions) {
-                    props[key] = value
-                } else {
-                    attrs[key] = value
-                }
-            }
-        }
-
-        instance.attrs = attrs
-        instance.props = reactive(props)
-    }
-
-    const mountComponent = (vnode, container, anchor) => {
-        // 组件可以基于自己的状态重新渲染 其实每个组件相当于一个effect
-        const { data = () => { }, render, props: propsOptions = {} } = vnode.type
-
-        const state = reactive(data())
-
-        const instance = {
-            state, // 状态
-            vnode, // 组件的虚拟节点
-            subTree: null, // 子树
-            isMounted: false, // 是否挂载完成
-            update: null, // 组件更新函数
-            props: {},
-            attrs: {},
-            propsOptions,
-            component: null,
-            proxy: null, // 用来代理props attrs data 让用户更方便的访问
-        }
-
-        vnode.component = instance
-        // 根据propsOptions 来区分出props,attrs
-        initProps(instance, vnode.props)
-
-        instance.proxy = new Proxy(instance, {
-            get(target, key, value) {
-
-            },
-            set(target, key, value, receiver) {
-                return true
-            }
-        })
-
+    const setupRenderEffect = (instance, container, anchor) => {
+        const { render } = instance
         const componentUpdateFn = () => {
             if (!instance.isMounted) {
-                const subTree = render.call(state, state)
-                instance.subTree = subTree
+                const subTree = render.call(instance.proxy, instance.proxy)
                 patch(null, subTree, container, anchor)
                 instance.isMounted = true
                 instance.subTree = subTree
             } else {
                 // 基于状态的组件更新
-                const subTree = render.call(state, state)
+                const subTree = render.call(instance.proxy, instance.proxy)
                 patch(instance.subTree, subTree, container, anchor)
                 instance.subTree = subTree
             }
         }
-
+        // 3.创建一个effect
         const effect = new ReactiveEffect(componentUpdateFn, () => queueJob(update))
 
         const update = (instance.update = () => effect.run())
         update()
     }
 
+
+
+    const mountComponent = (vnode, container, anchor) => {
+        // 1.创建组件实例 并且把这个实例放到虚拟节点上
+        const instance = (vnode.component = createComponentInstance(vnode))
+        // 2. 给实例属性赋值
+        setupComponent(instance)
+        // 3.创建一个effect
+        //  组件可以基于自己的状态重新渲染 其实每个组件相当于一个effect
+        setupRenderEffect(instance, container, anchor)
+    }
+
+    
+
+    const updateProps = (instance, preProps, nextProps) => {
+
+    }
+
+    const updateComponent = (n1, n2) => {
+        const instance = (n2.component = n1.component) // 复用组件实例
+
+        const { props: preProps } = n1
+        const { props: nextProps } = n2
+
+        updateProps(instance, preProps, nextProps)
+
+    }
+
     const processComponent = (n1, n2, container, anchor) => {
         if (n1 === null) { // 初始渲染
             mountComponent(n2, container, anchor)
         } else { // 组件更新
-
+            updateComponent(n1, n2)
         }
 
     }
