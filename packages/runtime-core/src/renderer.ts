@@ -421,7 +421,10 @@ export function createRenderer(renderOptions) {
     const unmount = (vnode) => {
         if (vnode.type === Fragment) {
             unmountChildren(vnode.children)
-        } else {
+        } else if (vnode.shapeFlag & ShapeFlags.COMPONENT) {
+            unmount(vnode.component.subTree)
+        }
+        else {
             hostRemove(vnode.el)
         }
     }
