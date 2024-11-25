@@ -76,8 +76,6 @@ export function setupComponent(instance) {
     const { vnode } = instance
     initProps(instance, vnode.props)
     instance.proxy = new Proxy(instance, handler)
-
-
     const { data = () => { }, render } = vnode.type
     if (!isFunction(data)) {
         return console.warn("data options must be a function ")
