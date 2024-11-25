@@ -1,4 +1,4 @@
-import { reactive } from "@vue/reactivity"
+import { proxyRefs, reactive } from "@vue/reactivity"
 import { hasOwn, isFunction } from "@vue/shared"
 
 export function createComponentInstance(vnode) {
@@ -13,6 +13,7 @@ export function createComponentInstance(vnode) {
         propsOptions: vnode.type.props,// 用户声明的哪些属性是组件的属性
         component: null,
         proxy: null, // 用来代理props attrs data 让用户更方便的访问
+        setupState: {}
     }
 
     return instance
@@ -42,11 +43,13 @@ const initProps = (instance, rawProps) => {
 
 const handler = {
     get(target, key, value) {
-        const { data, props } = target
+        const { data, props, setupState } = target
         if (data && hasOwn(data, key)) {
             return data[key]
         } else if (props && hasOwn(props, key)) {
             return props[key]
+        } else if (setupState && hasOwn(setupState, key)) {
+            return setupState[key]
         }
 
         const getter = publicProperty[key]
@@ -55,13 +58,15 @@ const handler = {
         }
     },
     set(target, key, value, receiver) {
-        const { data, props } = target
+        const { data, props, setupState } = target
         if (data && hasOwn(data, key)) {
             data[key] = value
         } else if (props && hasOwn(props, key)) {
             // props[key] = value
             console.warn("props are readonly")
             return false
+        } else if (setupState && hasOwn(setupState, key)) {
+            setupState[key] = value
         }
         return true
     }
@@ -76,11 +81,28 @@ export function setupComponent(instance) {
     const { vnode } = instance
     initProps(instance, vnode.props)
     instance.proxy = new Proxy(instance, handler)
-    const { data = () => { }, render } = vnode.type
+    const { data = () => { }, render, setup } = vnode.type
+
+    if (setup) {
+        const setupContext = {
+
+        }
+
+        const setupResult = setup(instance.props, setupContext)
+        if (isFunction(setupResult)) {
+            instance.render = setupResult
+        } else {
+            instance.setupState = proxyRefs(setupResult)
+        }
+    }
+
     if (!isFunction(data)) {
         return console.warn("data options must be a function ")
     } else {
         instance.data = reactive(data.call(instance.proxy))
     }
-    instance.render = render
+
+    if (!instance.render) {
+        instance.render = render
+    }
 }
