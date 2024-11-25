@@ -33,6 +33,8 @@ export function createVnode(type, props, children?) {
     if (children) {
         if (Array.isArray(children)) {
             vnode.shapeFlag = vnode.shapeFlag | ShapeFlags.ARRAY_CHILDREN
+        } else if (isObject(children)) {
+            vnode.shapeFlag = vnode.shapeFlag | ShapeFlags.SLOTS_CHILDREN
         } else {
             children = String(children)
             vnode.shapeFlag = vnode.shapeFlag | ShapeFlags.TEXT_CHILDREN

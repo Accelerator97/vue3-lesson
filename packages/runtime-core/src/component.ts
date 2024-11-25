@@ -1,5 +1,5 @@
 import { proxyRefs, reactive } from "@vue/reactivity"
-import { hasOwn, isFunction } from "@vue/shared"
+import { hasOwn, isFunction, ShapeFlags } from "@vue/shared"
 
 export function createComponentInstance(vnode) {
     const instance = {
@@ -10,10 +10,12 @@ export function createComponentInstance(vnode) {
         update: null, // 组件更新函数
         props: {},
         attrs: {},
+        slots: {},
         propsOptions: vnode.type.props,// 用户声明的哪些属性是组件的属性
         component: null,
         proxy: null, // 用来代理props attrs data 让用户更方便的访问
-        setupState: {}
+        setupState: {},
+        exposed: {}
     }
 
     return instance
@@ -39,6 +41,14 @@ const initProps = (instance, rawProps) => {
 
     instance.attrs = attrs
     instance.props = reactive(props)
+}
+
+const initSlots = (instance, children) => {
+    if (instance.vnode.shapeFlag & ShapeFlags.SLOTS_CHILDREN) {
+        instance.slots = children
+    } else {
+        instance.slots = {}
+    }
 }
 
 const handler = {
@@ -73,19 +83,31 @@ const handler = {
 }
 
 const publicProperty = {
-    $attrs: (instance) => instance.attrs
+    $attrs: (instance) => instance.attrs,
+    $slots: (instance) => instance.slots
 }
 
 export function setupComponent(instance) {
     // 根据propsOptions 来区分出props,attrs
     const { vnode } = instance
     initProps(instance, vnode.props)
+    initSlots(instance, vnode.children)
     instance.proxy = new Proxy(instance, handler)
     const { data = () => { }, render, setup } = vnode.type
 
     if (setup) {
         const setupContext = {
-
+            slots: instance.slots,
+            attrs: instance.attrs,
+            emit: (event, payload) => {
+                // myevent -> onMyEvent
+                const eventName = `on${event[0].toUpperCase() + event.slice(1)}`
+                const handler = instance.vnode.props[eventName]
+                handler && handler(payload)
+            },
+            expose: (value) => {
+                instance.exposed = value
+            }
         }
 
         const setupResult = setup(instance.props, setupContext)
