@@ -5,6 +5,7 @@ import getSequence from './seq'
 import { effect, reactive, ReactiveEffect } from '@vue/reactivity'
 import { queueJob } from './scheduler'
 import { createComponentInstance, setupComponent } from './component'
+import { invokeArray } from './apiLifeCycle'
 
 export function createRenderer(renderOptions) {
     const {
@@ -295,21 +296,34 @@ export function createRenderer(renderOptions) {
     const setupRenderEffect = (instance, container, anchor) => {
         const { render } = instance
         const componentUpdateFn = () => {
+            const { bm, m } = instance
             if (!instance.isMounted) {
+                if (bm) {
+                    invokeArray(bm)
+                }
                 const subTree = render.call(instance.proxy, instance.proxy)
                 patch(null, subTree, container, anchor)
                 instance.isMounted = true
+                if (m) {
+                    invokeArray(m)
+                }
                 instance.subTree = subTree
             } else {
-                const { next } = instance
+                const { next, bu, u } = instance
                 if (next) {
                     // 更新属性或者插槽
                     updateComponentPreRender(instance, next) // 更新里面的props或者slots
+                }
+                if (bu) {
+                    invokeArray(bu)
                 }
                 // 基于状态的组件更新
                 const subTree = render.call(instance.proxy, instance.proxy)
                 patch(instance.subTree, subTree, container, anchor)
                 instance.subTree = subTree
+                if (u) {
+                    invokeArray(u)
+                }
             }
         }
         // 3.创建一个effect

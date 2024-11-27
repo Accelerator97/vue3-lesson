@@ -109,11 +109,12 @@ export function setupComponent(instance) {
                 instance.exposed = value
             }
         }
-
+        setCurrentInstance(instance) //  设置全局当前实例
         const setupResult = setup(instance.props, setupContext)
+        unSetCurrentInstance() // setup执行完 清空全局当前实例
         if (isFunction(setupResult)) {
             instance.render = setupResult
-        } else {
+        } else { 
             instance.setupState = proxyRefs(setupResult)
         }
     }
@@ -127,4 +128,18 @@ export function setupComponent(instance) {
     if (!instance.render) {
         instance.render = render
     }
+}
+
+export let currentInstance = null
+
+export const getCurrentInstance = () => {
+    return currentInstance
+}
+
+export const setCurrentInstance = (instance) => {
+    currentInstance = instance
+}
+
+export const unSetCurrentInstance = () => {
+    currentInstance = null
 }
