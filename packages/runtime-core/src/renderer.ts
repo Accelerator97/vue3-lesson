@@ -193,7 +193,7 @@ export function createRenderer(renderOptions) {
                     unmount(vnode)
                 } else {
                     // 有可能i为0 为了保证0是没有比对过的元素 直接i+1
-                    newIndexToOldMapIndex[newIndex - s2] = i
+                    newIndexToOldMapIndex[newIndex - s2] = i + 1
                     //  比较前后节点的差异，更新属性和儿子
                     patch(vnode, c2[newIndex], el)
                 }
