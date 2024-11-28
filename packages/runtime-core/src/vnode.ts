@@ -1,4 +1,4 @@
-import { isObject, isString, ShapeFlags } from "@vue/shared"
+import { isFunction, isObject, isString, ShapeFlags } from "@vue/shared"
 
 
 export const Text = Symbol("text")
@@ -19,7 +19,9 @@ export function createVnode(type, props, children?) {
         ? ShapeFlags.ELEMENT // 元素
         : isObject(type)
             ? ShapeFlags.STATEFUL_COMPONENT // 组件
-            : 0
+            : isFunction(type)
+                ? ShapeFlags.FUNCTIONAL_COMPONENT
+                : 0
     const vnode = {
         __v_isVnode: true,
         type,

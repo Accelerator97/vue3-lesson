@@ -292,6 +292,15 @@ export function createRenderer(renderOptions) {
         updateProps(instance, instance.props, next.props)
     }
 
+    const renderComponent = (instance) => {
+        const { render, vnode, proxy, attrs } = instance
+        if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+            return render.call(proxy, proxy)
+        } else {
+            return vnode.type(attrs)
+        }
+    }
+
 
     const setupRenderEffect = (instance, container, anchor) => {
         const { render } = instance
@@ -301,7 +310,7 @@ export function createRenderer(renderOptions) {
                 if (bm) {
                     invokeArray(bm)
                 }
-                const subTree = render.call(instance.proxy, instance.proxy)
+                const subTree = renderComponent(instance)
                 patch(null, subTree, container, anchor)
                 instance.isMounted = true
                 if (m) {
@@ -318,7 +327,7 @@ export function createRenderer(renderOptions) {
                     invokeArray(bu)
                 }
                 // 基于状态的组件更新
-                const subTree = render.call(instance.proxy, instance.proxy)
+                const subTree = renderComponent(instance)
                 patch(instance.subTree, subTree, container, anchor)
                 instance.subTree = subTree
                 if (u) {
