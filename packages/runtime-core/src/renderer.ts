@@ -2,7 +2,7 @@
 import { ShapeFlags, isString, hasOwn } from '@vue/shared'
 import { isSameVnode, Text, createVnode, Fragment } from './vnode'
 import getSequence from './seq'
-import { effect, reactive, ReactiveEffect } from '@vue/reactivity'
+import { effect, isRef, reactive, ReactiveEffect } from '@vue/reactivity'
 import { queueJob } from './scheduler'
 import { createComponentInstance, setupComponent } from './component'
 import { invokeArray } from './apiLifeCycle'
@@ -328,7 +328,6 @@ export function createRenderer(renderOptions) {
         }
         // 3.创建一个effect
         const effect = new ReactiveEffect(componentUpdateFn, () => queueJob(update))
-
         const update = (instance.update = () => effect.run())
         update()
     }
@@ -409,8 +408,7 @@ export function createRenderer(renderOptions) {
             n1 = null
         }
         // 两个节点是相同的虚拟节点 比较差异
-        const { type, shapeFlag } = n2
-
+        const { type, shapeFlag, ref } = n2
         switch (type) {
             case Text: {
                 processText(n1, n2, container)
@@ -429,8 +427,20 @@ export function createRenderer(renderOptions) {
                 break
             }
         }
+
+        if (ref) {
+            setRef(ref, n2)
+        }
     }
 
+    const setRef = (rawRef, vnode) => {
+        let value = vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT
+            ? vnode.exposed || vnode.component.proxy
+            : vnode.el
+        if (isRef(rawRef)) {
+            rawRef.value = value
+        }
+    }
 
     const unmount = (vnode) => {
         if (vnode.type === Fragment) {

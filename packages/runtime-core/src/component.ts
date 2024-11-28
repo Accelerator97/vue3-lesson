@@ -14,7 +14,7 @@ export function createComponentInstance(vnode) {
         propsOptions: vnode.type.props,// 用户声明的哪些属性是组件的属性
         component: null,
         proxy: null, // 用来代理props attrs data 让用户更方便的访问
-        setupState: {},
+        setupState: {}, // setup函数执行的结果
         exposed: {}
     }
 
