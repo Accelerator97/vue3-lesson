@@ -21,7 +21,7 @@ export function createRenderer(renderOptions) {
     } = renderOptions
 
     const mountChildren = (children, container, parentComponent) => {
-        const newChildren= normalize(children)
+        const newChildren = normalize(children)
         for (let i = 0; i < newChildren.length; i++) {
             patch(null, newChildren[i], container, parentComponent)
         }
@@ -299,9 +299,9 @@ export function createRenderer(renderOptions) {
 
     const renderComponent = (instance) => {
         const { render, vnode, proxy, attrs } = instance
-        if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+        if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) { // 非函数组件
             return render.call(proxy, proxy)
-        } else {
+        } else {  // 函数组件
             return vnode.type(attrs)
         }
     }
@@ -434,7 +434,16 @@ export function createRenderer(renderOptions) {
             default: {
                 if (shapeFlag & ShapeFlags.ELEMENT) {
                     processElement(n1, n2, container, anchor, parentComponent)
-                } else if (shapeFlag & ShapeFlags.COMPONENT) {
+                } else if (shapeFlag & ShapeFlags.TELEPORT) {
+                    type.process(n1, n2, container, anchor, parentComponent, {
+                        mountChildren,
+                        patchChildren,
+                        move(vnode, container, anchor) { // 将组件或者dom元素移动到指定位置
+                            hostInsert(vnode.component ? vnode.component.subTree.el : vnode.el, container, anchor)
+                        }
+                    })
+                }
+                else if (shapeFlag & ShapeFlags.COMPONENT) {
                     processComponent(n1, n2, container, anchor, parentComponent)
                 }
                 break
@@ -460,6 +469,8 @@ export function createRenderer(renderOptions) {
             unmountChildren(vnode.children)
         } else if (vnode.shapeFlag & ShapeFlags.COMPONENT) {
             unmount(vnode.component.subTree)
+        } else if (vnode.shapeFlag & ShapeFlags.TELEPORT) {
+            vnode.type.remove(vnode, unmountChildren)
         }
         else {
             hostRemove(vnode.el)
