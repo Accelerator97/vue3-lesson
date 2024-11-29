@@ -294,7 +294,8 @@ export function createRenderer(renderOptions) {
     const updateComponentPreRender = (instance, next) => {
         instance.next = null
         instance.vnode = next
-        updateProps(instance, instance.props, next.props)
+        updateProps(instance, instance.props, next.props) // 更新props
+        Object.assign(instance.slots, next.children) // 更新slots
     }
 
     const renderComponent = (instance) => {
