@@ -43,7 +43,7 @@ export function createRenderer(renderOptions) {
 
     const mountElement = (vnode, container, anchor, parentComponent) => {
         // shapFlag是vnode的节点类型和 子节点类型 取异或的值
-        const { type, children, props, shapeFlag } = vnode
+        const { type, children, props, shapeFlag, transition } = vnode
         let el = (vnode.el = hostCreateElement(type))
         if (props) {
             for (let key in props) {
@@ -57,7 +57,15 @@ export function createRenderer(renderOptions) {
             mountChildren(children, el, parentComponent)
         }
 
+        if (transition) {
+            transition.beforeEnter(el)
+        }
+
         hostInsert(el, container, anchor)
+
+        if (transition) {
+            transition.enter(el)
+        }
     }
 
     const processElement = (n1, n2, container, anchor, parentComponent) => {
@@ -466,6 +474,7 @@ export function createRenderer(renderOptions) {
     }
 
     const unmount = (vnode) => {
+        const performance = () => { hostRemove(vnode.el) }
         if (vnode.type === Fragment) {
             unmountChildren(vnode.children)
         } else if (vnode.shapeFlag & ShapeFlags.COMPONENT) {
@@ -474,7 +483,11 @@ export function createRenderer(renderOptions) {
             vnode.type.remove(vnode, unmountChildren)
         }
         else {
-            hostRemove(vnode.el)
+            if (vnode.transition) {
+                vnode.transition.leave(vnode.el, performance)
+            }else{
+                performance()
+            }
         }
     }
 
