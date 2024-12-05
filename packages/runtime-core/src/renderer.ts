@@ -20,10 +20,10 @@ export function createRenderer(renderOptions) {
         patchProp: hostPatchProp
     } = renderOptions
 
-    const mountChildren = (children, container, parentComponent) => {
+    const mountChildren = (children, container, anchor, parentComponent) => {
         const newChildren = normalize(children)
         for (let i = 0; i < newChildren.length; i++) {
-            patch(null, newChildren[i], container, parentComponent)
+            patch(null, newChildren[i], container, anchor, parentComponent)
         }
     }
 
@@ -54,7 +54,7 @@ export function createRenderer(renderOptions) {
         if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
             hostSetElementText(el, children)
         } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) { // 说明是儿子是数组
-            mountChildren(children, el, parentComponent)
+            mountChildren(children, el, anchor, parentComponent)
         }
 
         if (transition) {
@@ -72,12 +72,12 @@ export function createRenderer(renderOptions) {
         if (n1 === null) {
             mountElement(n2, container, anchor, parentComponent)
         } else {
-            patchElement(n1, n2, container, parentComponent)
+            patchElement(n1, n2, container, anchor, parentComponent)
         }
     }
 
     // 比较两元素的差异
-    const patchElement = (n1, n2, container, parentComponent) => {
+    const patchElement = (n1, n2, container, anchor, parentComponent) => {
         // 1.比较元素的差异 要复用dom元素
         // 2.比较属性和子节点
 
@@ -90,7 +90,7 @@ export function createRenderer(renderOptions) {
         patchProps(oldProps, newProps, el)
 
         // 比较儿子节点
-        patchChildren(n1, n2, el, parentComponent)
+        patchChildren(n1, n2, el, anchor, parentComponent)
     }
 
     const patchProps = (oldProps, newProps, el) => {
@@ -235,7 +235,7 @@ export function createRenderer(renderOptions) {
     }
 
     // 儿子 有可能是text array 或者null 
-    const patchChildren = (n1, n2, el, parentComponent) => {
+    const patchChildren = (n1, n2, el, anchor, parentComponent) => {
 
         const c1 = n1.children
         const c2 = normalize(n2.children)
@@ -269,7 +269,7 @@ export function createRenderer(renderOptions) {
                     hostSetElementText(el, "")
                 }
                 if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {  // 情况6
-                    mountChildren(c2, el, parentComponent)
+                    mountChildren(c2, el, anchor, parentComponent)
                 }
 
             }
@@ -291,11 +291,11 @@ export function createRenderer(renderOptions) {
     }
 
 
-    const processFragment = (n1, n2, container, parentComponent) => {
+    const processFragment = (n1, n2, container, anchor, parentComponent) => {
         if (n1 === null) {
-            mountChildren(n2.children, container, parentComponent)
+            mountChildren(n2.children, container, anchor, parentComponent)
         } else {
-            patchChildren(n1, n2, container, parentComponent)
+            patchChildren(n1, n2, container, anchor, parentComponent)
         }
     }
 
@@ -408,9 +408,6 @@ export function createRenderer(renderOptions) {
             instance.next = n2 // 如果调用update方法时有next属性，说明是属性更新或插槽更新
             instance.update() // 让更新逻辑统一
         }
-
-
-
     }
 
     const processComponent = (n1, n2, container, anchor, parentComponent) => {
@@ -419,7 +416,6 @@ export function createRenderer(renderOptions) {
         } else { // 组件更新
             updateComponent(n1, n2)
         }
-
     }
 
     // 渲染 更新
@@ -437,7 +433,7 @@ export function createRenderer(renderOptions) {
                 break
             }
             case Fragment: {
-                processFragment(n1, n2, container, parentComponent)
+                processFragment(n1, n2, container, anchor, parentComponent)
                 break
             }
             default: {
@@ -485,7 +481,7 @@ export function createRenderer(renderOptions) {
         else {
             if (vnode.transition) {
                 vnode.transition.leave(vnode.el, performance)
-            }else{
+            } else {
                 performance()
             }
         }

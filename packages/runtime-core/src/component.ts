@@ -116,7 +116,7 @@ export function setupComponent(instance) {
         unSetCurrentInstance() // setup执行完 清空全局当前实例
         if (isFunction(setupResult)) {
             instance.render = setupResult
-        } else { 
+        } else {
             instance.setupState = proxyRefs(setupResult)
         }
     }
