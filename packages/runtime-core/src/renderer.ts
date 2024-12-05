@@ -364,6 +364,8 @@ export function createRenderer(renderOptions) {
         // 3.创建一个effect
         //  组件可以基于自己的状态重新渲染 其实每个组件相当于一个effect
         setupRenderEffect(instance, container, anchor)
+
+        console.log("instance", instance)
     }
 
     const hasPropsChanged = (preProps, nextProps) => {
@@ -462,7 +464,7 @@ export function createRenderer(renderOptions) {
 
     const setRef = (rawRef, vnode) => {
         let value = vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT
-            ? vnode.exposed || vnode.component.proxy
+            ? vnode.component.exposed || vnode.component.proxy
             : vnode.el
         if (isRef(rawRef)) {
             rawRef.value = value
