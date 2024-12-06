@@ -16,8 +16,8 @@ export const Teleport = {
             if (target) {
                 mountChildren(n2.children, target, parentComponent)
             }
-        }
-        else {patchChildren(n1, n2, n2.target, parentComponent)
+        } else {
+            patchChildren(n1, n2, n2.target, parentComponent)
             if (n2.props.to !== n1.props.to) {
                 const nextTarget = document.querySelector(n2.props.to)
                 n2.children.forEach(child => move(child, nextTarget, anchor))
