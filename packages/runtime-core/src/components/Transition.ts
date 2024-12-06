@@ -74,7 +74,6 @@ export function resolveTransitionProps(props) {
 export function Transition(props, { slots }) {
     // 函数式组件功能比较少，为了方便函数式组件处理了属性
     // 处理属性后传递给有状态组件
-
     return h(BaseTransitionImple, resolveTransitionProps(props), slots)
 }
 
@@ -89,7 +88,7 @@ const BaseTransitionImple = {
         return () => {
             const vnode = slots.default && slots.default()
             if (!vnode) return
-            vnode.Transition = {
+            vnode.transition = {
                 beforeEnter: props.onBeforeEnter,
                 enter: props.onEnter,
                 leave: props.onLeave

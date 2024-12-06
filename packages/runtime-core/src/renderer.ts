@@ -307,11 +307,11 @@ export function createRenderer(renderOptions) {
     }
 
     const renderComponent = (instance) => {
-        const { render, vnode, proxy, attrs } = instance
+        const { render, vnode, proxy, attrs, slots } = instance
         if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) { // 非函数组件
             return render.call(proxy, proxy)
         } else {  // 函数组件
-            return vnode.type(attrs)
+            return vnode.type(attrs, { slots })
         }
     }
 
@@ -477,8 +477,7 @@ export function createRenderer(renderOptions) {
             unmount(vnode.component.subTree)
         } else if (vnode.shapeFlag & ShapeFlags.TELEPORT) {
             vnode.type.remove(vnode, unmountChildren)
-        }
-        else {
+        } else {
             if (vnode.transition) {
                 vnode.transition.leave(vnode.el, performance)
             } else {
