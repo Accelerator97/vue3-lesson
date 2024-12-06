@@ -17,7 +17,8 @@ export function createComponentInstance(vnode, parent) {
         setupState: {}, // setup函数执行的结果
         exposed: {},
         parent,
-        provides: parent ? parent.provides : Object.create(null)
+        provides: parent ? parent.provides : Object.create(null),
+        ctx: {} as any, // 如果是keepAlive组件 就把dom api放到这个属性上
     }
 
     return instance
