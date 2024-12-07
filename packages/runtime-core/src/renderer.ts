@@ -7,6 +7,7 @@ import { queueJob } from './scheduler'
 import { createComponentInstance, setupComponent } from './component'
 import { invokeArray } from './apiLifeCycle'
 import { isKeepAlive } from './components/KeepAlive'
+import { PatchFlags } from 'packages/shared/src/patchFlags'
 
 export function createRenderer(renderOptions) {
     const {
@@ -87,11 +88,38 @@ export function createRenderer(renderOptions) {
         let newProps = n2.props || {}
 
 
-        // 比较props hostPatchProps 只针对某一个属性来处理  class style event attr
-        patchProps(oldProps, newProps, el)
+        // 比较元素的时候 根据某个属性来比较
+        const { patchFlag, dynamicChildren } = n2
+        if (patchFlag) {
+            if (patchFlag & PatchFlags.STYLE) {
+                // TODO:
+            }
+            if (patchFlag & PatchFlags.CLASS) {
+                // TODO:
+            }
+            if (patchFlag & PatchFlags.TEXT) {
+                // 只要文本是动态的 只比较文本
+                if (n1.children !== n2.children) {
+                    return hostSetElementText(el, n2.children)
+                }
+            }
+        } else {
+            // 比较props hostPatchProps 只针对某一个属性来处理  class style event attr
+            patchProps(oldProps, newProps, el)
+        }
 
-        // 比较儿子节点
-        patchChildren(n1, n2, el, anchor, parentComponent)
+        if (dynamicChildren) {
+            patchBlockChildren(n1, n2, el, anchor, parentComponent)
+        } else {
+            // 比较儿子节点 全量diff
+            patchChildren(n1, n2, el, anchor, parentComponent)
+        }
+    }
+
+    const patchBlockChildren = (n1, n2, el, anchor, parentComponent) => {
+        for (let i = 0; i < n2.dynamicChildren.length; i++) {
+            patch(n1.dynamicChildren[i], n2.dynamicChildren[i], el, anchor, parentComponent)
+        }
     }
 
     const patchProps = (oldProps, newProps, el) => {

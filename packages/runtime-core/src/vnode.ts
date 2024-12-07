@@ -14,7 +14,7 @@ export function isSameVnode(n1, n2) {
     return n1.type === n2.type && n1.key === n2.key
 }
 
-export function createVnode(type, props, children?) {
+export function createVnode(type, props, children?, patchFlag?) {
     // type : div h1  h2这种标签  或者 组件
     const shapeFlag = isString(type)
         ? ShapeFlags.ELEMENT // 元素
@@ -33,7 +33,12 @@ export function createVnode(type, props, children?) {
         key: props?.key, // diff算法需要的key
         el: null, // 虚拟节点对应的真实节点
         shapeFlag,
-        ref: props?.ref
+        ref: props?.ref,
+        patchFlag
+    }
+
+    if (currentBlock && patchFlag > 0) {
+        currentBlock.push(vnode)
     }
 
     if (children) {
@@ -49,3 +54,38 @@ export function createVnode(type, props, children?) {
 
     return vnode
 }
+
+
+let currentBlock = null
+export function openBlock() {
+    currentBlock = [] // 用于收集动态节点
+}
+
+
+export function closeBlock() {
+    currentBlock = null
+}
+
+export function setupBlock(vnode) {
+    vnode.dynamicChildren = currentBlock
+    closeBlock()
+    return vnode
+}
+
+// block有收集虚拟节点的功能
+export function createElementBlock(type, props, children, patchFlag?) {
+    return setupBlock(createVnode(type, props, children, patchFlag))
+}
+
+export function toDisplayString(value) {
+    return isString(value)
+        ? value
+        : value === null
+            ? ''
+            : isObject(value)
+                ? JSON.stringify(value)
+                : String(value)
+}
+
+
+export { createVnode as createElementVNode }
