@@ -69,7 +69,6 @@ export const KeepAlive = {
                 keys.add(key)
             } else {
                 keys.add(key)
-                console.log("keys", max, keys)
                 if (max && keys.size > max) {
                     // 说明达到最大缓存个数
                     // 获取set中第一个元素keys.values().next().value
