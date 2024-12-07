@@ -71,11 +71,23 @@ function parseTextData(context, endIndex) {
     return content
 }
 
-function parseElement(context) {
+function parseTag(context) {
+    const tag = ""
+    const isSelfClosing = false
 
     return {
-        type: NodeTypes.ELEMENT
+        type: NodeTypes.ELEMENT,
+        tag,
+        isSelfClosing
     }
+
+}
+
+function parseElement(context) {
+    const ele = parseTag(context);
+    (ele as any).children = [];
+    (ele as any).loc = [];
+    return ele
 }
 
 function advanceBy(context, endIndex) {
