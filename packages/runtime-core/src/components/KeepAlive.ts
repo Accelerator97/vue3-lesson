@@ -49,10 +49,12 @@ export const KeepAlive = {
             _unmount(vnode)
         }
         function purneCacheEntry(key) {
-            console.log("删除", key, keys)
             keys.delete(key)
             const cached = cache.get(key)
-            unmount(cached)  // 真实dom节点删除
+            if (cached) {
+                unmount(cached)  // 真实dom节点删除
+                cache.delete(key); // 从缓存中删除
+            }
         }
         return () => {
             const vnode = slots.default()
