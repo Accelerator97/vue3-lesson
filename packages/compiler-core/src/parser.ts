@@ -36,7 +36,7 @@ function parseChildren(context) {
         if (c.startsWith("{{")) { // 表达式 {{ xxx }}
             node = parseInterpolation(context)
         } else if (c[0] === "<") { // 元素标签
-            // node = parseElement(context)
+            node = parseElement(context)
         } else { // 文本
             node = parseText(context)
         }
@@ -104,12 +104,66 @@ function parseTextData(context, endIndex) {
     return content
 }
 
+function parseAttribute(context) {
+    const props = []
+
+    while (context.source.length && !context.source.startsWith(">")) {
+        const prop = parseSingleAttribute(context)
+        props.push(prop)
+        advanceSpaces(context)
+
+    }
+
+    return props
+}
+
+function parseSingleAttribute(context) {
+    const start = getCursor(context)
+    // a   = '1'
+    let match = /^[^\t\r\n\f />][^\t\r\n\f />=]*/.exec(context.source);
+
+    const name = match[0]
+    advanceBy(context, name.length)
+    advanceSpaces(context)
+    advanceBy(context, 1) // 删除等号
+
+    let value = parseAttributeValue(context)    
+    return {
+        type: NodeTypes.ATTRIBUTE,
+        name,
+        value: {
+            type: NodeTypes.TEXT,
+            ...value
+        },
+        loc: getSelection(context, start)
+    }
+}
+
+function parseAttributeValue(context) {
+    const start = getCursor(context)
+    let quote = context.source[0]
+    let content
+    if (["'", '"'].includes(quote)) { // 单引号或者双引号
+        advanceBy(context, 1)
+        const endIndex = context.source.indexOf(quote)
+        content = parseTextData(context, endIndex)
+        advanceBy(context, 1)
+    }
+
+    return {
+        content,
+        loc: getSelection(context, start)
+    }
+
+}
+
 function parseTag(context) {
     const start = getCursor(context)
     const match = /^<\/?([a-z][^ \t\r\n/>]*)/.exec(context.source);
     const tag = match[1]
     advanceBy(context, match[0].length)
     advanceSpaces(context)
+    parseAttribute(context)
     const isSelfClosing = context.source.startsWith("/>")
     advanceBy(context, isSelfClosing ? 2 : 1)
     return {
@@ -122,11 +176,13 @@ function parseTag(context) {
 
 function parseElement(context) {
     const ele = parseTag(context);
+    let children = parseChildren(context)
     if (context.source.startsWith("</")) {
         parseTag(context) // 闭合标签直接移除
     }
     (ele as any).children = [];
     (ele as any).loc = getSelection(context, ele.loc.start);
+    (ele as any).children = children
     return ele
 }
 
@@ -159,7 +215,7 @@ function advanceSpaces(context) {
     }
 }
 
-
+// 计算最新的位置信息
 function getSelection(context, start, e?) {
     let end = e || getCursor(context);
     // eslint 可以根据 start，end找到要报错的位置
