@@ -34,13 +34,11 @@ function parseChildren(context) {
         const c = context.source // 现在解析的内容
         let node
         if (c.startsWith("{{")) { // 表达式 {{ xxx }}
-            // node = parseInterpolation(context)
+            node = parseInterpolation(context)
         } else if (c[0] === "<") { // 元素标签
             // node = parseElement(context)
         } else { // 文本
             node = parseText(context)
-            console.log("node", node)
-            break
         }
         nodes.push(node)
     }
@@ -48,8 +46,37 @@ function parseChildren(context) {
 }
 
 
-function parseInterpolation() {
+function parseInterpolation(context) {
+    const start = getCursor(context)
+    // {{ xxx }} {{xxx}}  
+    const closeIndex = context.source.indexOf("}}", "{{".length) // 查找结束的大括号下标
+    advanceBy(context, 2) // 删掉{{ 
 
+    const innerStart = getCursor(context)
+    const innerEnd = getCursor(context)
+
+    // 拿到原始内容
+    const rawContentLength = closeIndex - 2
+    let preContent = parseTextData(context, rawContentLength)
+    let content = preContent.trim()
+    let startOffset = preContent.indexOf(content)
+
+    if (startOffset > 0) { // 说明xxx前面有空格
+        advancePositionWithMutation(innerStart, preContent, startOffset)
+    }
+    let endOffset = startOffset + content.length
+    advancePositionWithMutation(innerEnd, preContent, endOffset)
+    advanceBy(context, 2)
+
+    return {
+        type: NodeTypes.INTERPOLATION,
+        content: {
+            content,
+            type: NodeTypes.SIMPLE_EXPRESSION,
+            loc: getSelection(context, innerStart, innerEnd)
+        },
+        loc: getSelection(context, start)
+    }
 }
 
 function parseText(context) {
