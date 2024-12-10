@@ -42,7 +42,20 @@ function parseChildren(context) {
         }
         nodes.push(node)
     }
-    return nodes
+    // 状态机
+    for (let i = 0; i < nodes.length; i++) {
+        let node = nodes[i];
+        // 将空节点进行压缩
+        if (node.type === NodeTypes.TEXT) {
+            // 如果是空白字符 清空
+            if (!/[^\t\r\n\f ]/.test(node.content)) {
+                nodes[i] = null; // 空白字符清空
+            } else {
+                node.content = node.content.replace(/[\t\r\n\f ]+/g, " ");
+            }
+        }
+    }
+    return nodes.filter(item => Boolean(item))
 }
 
 
@@ -127,7 +140,7 @@ function parseSingleAttribute(context) {
     advanceSpaces(context)
     advanceBy(context, 1) // 删除等号
 
-    let value = parseAttributeValue(context)    
+    let value = parseAttributeValue(context)
     return {
         type: NodeTypes.ATTRIBUTE,
         name,
