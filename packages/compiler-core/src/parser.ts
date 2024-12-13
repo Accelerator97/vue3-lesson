@@ -176,24 +176,24 @@ function parseTag(context) {
     const tag = match[1]
     advanceBy(context, match[0].length)
     advanceSpaces(context)
-    parseAttribute(context)
+    let props = parseAttribute(context)
     const isSelfClosing = context.source.startsWith("/>")
     advanceBy(context, isSelfClosing ? 2 : 1)
     return {
         type: NodeTypes.ELEMENT,
         tag,
         isSelfClosing,
-        loc: getSelection(context, start)
+        loc: getSelection(context, start),
+        props
     }
 }
 
 function parseElement(context) {
     const ele = parseTag(context);
-    let children = parseChildren(context)
+    const children = parseChildren(context)
     if (context.source.startsWith("</")) {
         parseTag(context) // 闭合标签直接移除
     }
-    (ele as any).children = [];
     (ele as any).loc = getSelection(context, ele.loc.start);
     (ele as any).children = children
     return ele
